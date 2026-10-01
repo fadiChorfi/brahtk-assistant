@@ -1,5 +1,6 @@
 import os
 from typing import Annotated, TypedDict
+from langgraph.checkpoint.memory import MemorySaver
 from langchain.chat_models import init_chat_model
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import AnyMessage, HumanMessage, SystemMessage
@@ -10,6 +11,7 @@ from langgraph.graph import START, StateGraph
 from tools.semi_str import search_company_knowledge_tool
 from tools.services import get_data_format_tool
 from dotenv import load_dotenv
+
 
 
 load_dotenv()
@@ -58,7 +60,11 @@ builder.add_edge(START, "assistant")
 builder.add_conditional_edges("assistant", tools_condition)
 builder.add_edge("tools", "assistant")
 
-app = builder.compile()
+memory= MemorySaver()
+
+
+
+app = builder.compile(checkpointer=memory)
 
 
 
