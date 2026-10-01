@@ -1,0 +1,31 @@
+[project]
+name = "mr-proper-aiassistant"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "fadydodje", email = "fadydodje@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi[standard]>=0.141.1",
+    "langchain>=1.4.1",
+    "langchain-community>=0.4.2",
+    "langchain-google-genai>=4.4.0",
+    "langchain-google-vertexai>=3.2.4",
+    "rank-bm25>=0.2.2",
+    "supabase>=2.31.0",
+    "uvicorn>=0.53.0",
+]
+
+[project.scripts]
+mr-proper-aiassistant = "mr_proper_aiassistant:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.8",
+]

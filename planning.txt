@@ -1,0 +1,5 @@
+"""
+fetch services with its service_feautures and service_extra, pricing_options, sub_pricing_options  
+the outut json
+this json should be fed to the llm next to the system propmts and the user query and history
+"""

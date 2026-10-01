@@ -1,0 +1,25 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache & build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Environment / Secrets (CRITICAL)
+.env
+*.env
+.env.local
+
+# IDE / Editor configs
+.vscode/
+.idea/
+
+# Generated data / Vector store caches (if applicable)
+chunks/
+*.db
+*.sqlite
