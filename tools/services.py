@@ -15,8 +15,8 @@ if not supabase_url or not supabase_key:
 supabase: Client = create_client(supabase_url, supabase_key)  # pyright: ignore[reportArgumentType]
 
 
-def format_services_for_context(services: Sequence[Mapping[str, Any]]) -> str:  
-    """Transforms nested relational data into a single formatted text block for LLM prompt injection."""
+""" def format_services_for_context(services: Sequence[Mapping[str, Any]]) -> str:  
+    Transforms nested relational data into a single formatted text block for LLM prompt injection.
     blocks = []
 
     for service in services:
@@ -44,7 +44,6 @@ def format_services_for_context(services: Sequence[Mapping[str, Any]]) -> str:
 
         text_payload = (
             f"Service Name: {service.get('name')}\n"
-            f"Status: {service.get('status')}\n"
             f"Description: {service.get('description')}\n"
             f"Features: {features_str}\n"
             f"Add-ons/Extras: {extras_str}\n"
@@ -53,14 +52,70 @@ def format_services_for_context(services: Sequence[Mapping[str, Any]]) -> str:
 
         blocks.append(text_payload)
 
-    # Returns one formatted text payload for the LLM
-    return "\n\n---\n\n".join(blocks)
+    return "\n\n---\n\n".join(blocks) """
+
+
+
+
+
+
+def _fmt_price(label: Any, price: Any) -> str:
+    return f"{label} ({price:g})" if price not in (None, "") else str(label)
+
+
+def format_services_for_context(services: Sequence[Mapping[str, Any]]) -> str:
+    """Compact, LLM-friendly text: empty/None fields are omitted entirely."""
+    blocks = []
+
+    for service in services:
+        lines = []
+
+        if name := service.get("name"):
+            lines.append(f"Service: {name}")
+
+        if desc := service.get("description"):
+            lines.append(f"Description: {desc}")
+
+        features = [f["name"] for f in service.get("service_feature") or [] if f.get("name")]
+        if features:
+            lines.append(f"Features: {', '.join(features)}")
+
+        extras = [
+            _fmt_price(e["label"], e.get("price_per_unit")) + ("/unit" if e.get("price_per_unit") else "")
+            for e in service.get("service_extra") or []
+            if e.get("label")
+        ]
+        if extras:
+            lines.append(f"Extras: {'; '.join(extras)}")
+
+        options = []
+        for opt in service.get("pricing_option") or []:
+            if not opt.get("label"):
+                continue
+            s = _fmt_price(opt["label"], opt.get("price"))
+            subs = [
+                _fmt_price(sub["label"], sub.get("price"))
+                for sub in opt.get("sub_pricing_option") or []
+                if sub.get("label")
+            ]
+            if subs:
+                s += f" [{', '.join(subs)}]"
+            options.append(s)
+        if options:
+            lines.append(f"Pricing: {'; '.join(options)}")
+
+        # Skip services that have only a name and nothing else (e.g. "New Service")
+        if len(lines) > 1:
+            blocks.append("\n".join(lines))
+
+    return "\n---\n".join(blocks)
+
 
 
 def fetch_available_services(query: str = "") -> str:
     """Fetch available services with their prices and format as text context."""
     response = supabase.table("service").select(
-        "id, name, description, status, "
+        "id, name, description,"
         "service_feature(name), "
         "service_extra(label, input_type, min_value, max_value, default_value, price_per_unit), "
         "pricing_option(label, price, sub_pricing_option(label, price, original_price))"
@@ -68,7 +123,7 @@ def fetch_available_services(query: str = "") -> str:
     
     if not response.data:
         return "No active services found."
-
+    
     return format_services_for_context(response.data) # pyright: ignore[reportArgumentType]
 
 
@@ -77,3 +132,22 @@ get_data_format_tool = Tool(
     func=fetch_available_services,
     description="Fetch data up-to-date about the available services with all their pricing and offers"
 )
+
+
+
+if __name__ == "__main__":
+    fetch_available_services()
+
+
+
+
+
+
+"""
+to do:
+### optimize the formatted data lengh 
+
+[] skip
+empty/undefined/none : empty
+
+"""

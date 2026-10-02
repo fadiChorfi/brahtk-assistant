@@ -1,21 +1,53 @@
 from fastapi import FastAPI, HTTPException
 from supabase import create_client, Client
-from pydantic import BaseModel
-from tools.services import fetch_available_services
-from dotenv import load_dotenv
-from assistant import app as agent_app
+from pydantic import BaseModel, Field, field_validator
 from langchain_core.messages import HumanMessage 
+from fastapi.middleware.cors import CORSMiddleware
+from  tools.services import fetch_available_services
+from tools.services import fetch_available_services
+from assistant import app as agent_app
+from dotenv import load_dotenv
 import os
+import re
 
 load_dotenv()
 
 app = FastAPI()
 
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY")) # pyright: ignore[reportArgumentType]
 
+
+PROMPT_INJECTION_PATTERN = re.compile(
+    r"(ignore\s+(all\s+)?(previous|above)\s+instructions|system\s+prompt|reveal\s+instructions|you\s+are\s+now\s+DAN)",
+    re.IGNORECASE,
+)
+
 class ChatRequest (BaseModel):
-    message: str
-    thread_id: str
+    message: str=  Field(
+        ...,
+        min_length=2, 
+        max_length=800,
+        description= "User query for the cleaning assistant.",
+        examples=["كم سعر تنظيف الأرائك؟"]
+    )
+    thread_id: str= Field(
+        ...,
+        min_length=3,
+        max_length=64,
+        pattern=r"^[a-zA-Z0-9_\-]+$",
+        description="Session or user thread ID.",
+        examples=["user_session_101"],
+    )
     
 class ChatResponse (BaseModel):
     reply: str
@@ -25,7 +57,7 @@ class ChatResponse (BaseModel):
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
-    
+
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
     
@@ -49,6 +81,11 @@ async def chat_endpoint(req: ChatRequest):
 async def root():
     return {"status": "online", "service": "Brahtk AI Assistant API"}
 
+
+@app.get("/services")
+async def services():
+     return fetch_available_services()
+    
 
 
 if __name__ == "__main__":
